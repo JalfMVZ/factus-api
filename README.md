@@ -17,6 +17,7 @@ Antes de comenzar, asegúrate de tener instalado lo siguiente:
 
 - Node.js versión 14 o superior.
 - Next.js versión 10 o superior.
+- Instalar pnpm: `npm install -g pnpm`.
 - Una cuenta activa en Factus con credenciales de API.
 
 ## Instalación
@@ -26,14 +27,14 @@ Sigue estos pasos para configurar el proyecto en tu entorno local:
 1. Clona este repositorio:
 
 ```bash
-git clone https://github.com/tu-usuario/nombre-del-repositorio.git
-cd nombre-del-repositorio
+git clone https://github.com/JalfMVZ/factus-api
+cd factus-api
 ```
 
 2. Instala las dependencias:
 
 ```bash
-npm install
+pnpm install
 ```
 
 3. Configura las variables de entorno:
@@ -50,7 +51,7 @@ NEXT_PUBLIC_URL_API=
 4. Inicia el servidor de desarrollo:
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 ## Uso
@@ -85,10 +86,6 @@ git push origin nueva-funcionalidad
 ```
 
 5. Abre un Pull Request detallando tus cambios.
-
-## Licencia
-
-Este proyecto está licenciado bajo la Licencia MIT.
 
 ## Contacto
 
