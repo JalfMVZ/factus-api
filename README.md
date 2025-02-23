@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Integración de Facturación Electrónica con Factus API en Next.js
 
-## Getting Started
+## Descripción
 
-First, run the development server:
+Este proyecto implementa una integración con la API de Factus para gestionar facturas electrónicas en una aplicación desarrollada con Next.js. La solución permite crear, validar y administrar documentos electrónicos, asegurando el cumplimiento de las normativas de facturación electrónica en Colombia establecidas por la DIAN.
+
+## Características
+
+- Creación y validación de facturas electrónicas: Genera y valida facturas electrónicas conforme a los estándares colombianos.
+- Gestión de notas crédito: Emite y administra notas crédito para corregir o anular facturas previamente emitidas.
+- Descarga de documentos: Obtén facturas y notas crédito en formatos PDF y XML para su registro y envío.
+- Manejo de rangos de numeración: Administra los rangos de numeración autorizados para la emisión de documentos fiscales.
+
+## Requisitos Previos
+
+Antes de comenzar, asegúrate de tener instalado lo siguiente:
+
+- Node.js versión 14 o superior.
+- Next.js versión 10 o superior.
+- Una cuenta activa en Factus con credenciales de API.
+
+## Instalación
+
+Sigue estos pasos para configurar el proyecto en tu entorno local:
+
+1. Clona este repositorio:
+
+```bash
+git clone https://github.com/tu-usuario/nombre-del-repositorio.git
+cd nombre-del-repositorio
+```
+
+2. Instala las dependencias:
+
+```bash
+npm install
+```
+
+3. Configura las variables de entorno:
+
+Crea un archivo `.env.local` en la raíz del proyecto con las siguientes variables:
+
+```env
+NODE_ENV=
+NEXT_PUBLIC_CLIENT_ID=
+NEXT_PUBLIC_CLIENT_SECRET=
+NEXT_PUBLIC_URL_API=
+```
+
+4. Inicia el servidor de desarrollo:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Uso
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Una vez que la aplicación esté en funcionamiento, podrás:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Crear una nueva factura: Navega a la sección "Crear Factura" y completa el formulario con los detalles necesarios.
+- Ver facturas existentes: Accede a la sección "Listado de Facturas" para visualizar y gestionar las facturas emitidas.
+- Emitir una nota crédito: Selecciona una factura y elige la opción "Emitir Nota Crédito" para generar una nota asociada.
 
-## Learn More
+## Contribuciones
 
-To learn more about Next.js, take a look at the following resources:
+Si deseas contribuir a este proyecto:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Haz un fork del repositorio.
+2. Crea una nueva rama para tu funcionalidad:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+git checkout -b nueva-funcionalidad
+```
 
-## Deploy on Vercel
+3. Realiza tus cambios y haz commit:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+git commit -m 'Agrega nueva funcionalidad'
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4. Haz push a la rama:
+
+```bash
+git push origin nueva-funcionalidad
+```
+
+5. Abre un Pull Request detallando tus cambios.
+
+## Licencia
+
+Este proyecto está licenciado bajo la Licencia MIT.
+
+## Contacto
+
+Tu Nombre
+
+- Correo: velascojosealfredo1@gmail.com
+- Sitio Web: [Portfolio](https://portfolio-jmvz.vercel.app/)
+- GitHub: [JalfMVZ](https://github.com/JalfMVZ)

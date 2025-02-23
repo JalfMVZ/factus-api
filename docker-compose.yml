@@ -1,0 +1,20 @@
+services:
+  nextjs-app:
+    container_name: factus-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+    command: pnpm dev
+    stdin_open: true
+    tty: true
