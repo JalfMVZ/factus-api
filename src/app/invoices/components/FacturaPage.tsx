@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { getAllBills } from "@/services/bills";
 import { FacturasList } from "./FacturasList";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BillsResponse } from "../invoices-interface";
+import { BillsResponse } from "../interfaces/invoices-interface";
 
 export default function FacturasPage() {
   const [loading, setLoading] = useState(true);

@@ -7,7 +7,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { FacturaCard } from "./FacturaCard";
-import { FacturasListProps } from "../invoices-interface";
+import { FacturasListProps } from "../interfaces/invoices-interface";
 
 const generateVisiblePages = (
   current: number,

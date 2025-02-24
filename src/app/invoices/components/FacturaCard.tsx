@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Factura } from "../invoices-interface";
+import { Factura } from "../interfaces/invoices-interface";
 
 interface FacturaCardProps {
   factura: Factura;

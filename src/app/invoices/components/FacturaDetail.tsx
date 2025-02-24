@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { BillDetail, FacturaDetailProps } from "../invoices-interface";
+import { BillDetail, FacturaDetailProps } from "../interfaces/invoices-interface";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getBillDetail } from "@/services/bills-detail";
 import { useAuth } from "@/hooks/useAuth";
