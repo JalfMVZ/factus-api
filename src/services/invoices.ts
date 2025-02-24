@@ -6,15 +6,21 @@ import { ApiResponse, ApiError } from "@/services/interfaces/apiResponse";
 import { BillValidationError } from "@/errors/billCreationError";
 import { z } from "zod";
 
+// const debug = (stage: string, data: any) => {
+//   console.group(`🔍 Debug: ${stage}`);
+//   console.log(JSON.stringify(data, null, 2));
+//   console.groupEnd();
+// };
+
 const transformApiErrors = (errors: ApiError[]): Record<string, string[]> => {
-  return errors.reduce((acc, error) => {
+  const transformed = errors.reduce((acc, error) => {
     const path =
       error.source?.pointer?.replace("/data/", "").replaceAll("/", ".") ||
       "general";
-
     acc[path] = [error.detail];
     return acc;
   }, {} as Record<string, string[]>);
+  return transformed;
 };
 
 export const processInvoice = async (
@@ -64,13 +70,18 @@ export const processInvoice = async (
     }
 
     return responseData;
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorData = {
+      type: error instanceof Error ? error.constructor.name : "Unknown",
+      message: error instanceof Error ? error.message : "Error desconocido",
+      stack: error instanceof Error ? error.stack : undefined,
+    };
+
     if (error instanceof z.ZodError) {
       const formattedErrors = error.errors.reduce((acc, curr) => {
         acc[curr.path.join(".")] = [curr.message];
         return acc;
       }, {} as Record<string, string[]>);
-
       throw new BillValidationError(formattedErrors);
     }
 

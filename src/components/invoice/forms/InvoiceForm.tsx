@@ -30,18 +30,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { formatZodErrors } from "@/lib/formatZodErrors";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function InvoiceForm() {
+  const navigate = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverErrors, setServerErrors] = useState<Record<string, string[]>>(
     {}
   );
+
   const { token } = useAuth();
 
   const form = useForm<Invoice>({
     resolver: zodResolver(InvoiceSchema),
     defaultValues: {
-      document: "01",
       numbering_range_id: 1,
       reference_code: "",
       observation: "",
@@ -100,30 +103,57 @@ export default function InvoiceForm() {
     try {
       setIsSubmitting(true);
       setServerErrors({});
-
       if (!token) {
         throw new Error("No se encontró el token de autenticación");
       }
-
       const result = await processInvoice(values, token);
-
+      toast.success("Factura generada exitosamente", {
+        description: "La factura ha sido procesada y guardada correctamente.",
+        duration: 5000,
+        style: {
+          background: "#10B981",
+          color: "white",
+        },
+        action: {
+          label: "Ver factura",
+          onClick: () =>
+            navigate.push(`/invoices/${(result as any).data.bill.number}`),
+        },
+      });
       form.reset();
     } catch (error) {
       if (error instanceof BillValidationError) {
         const errorMap = error.errors;
         setServerErrors(errorMap);
-
         Object.entries(errorMap).forEach(([path, messages]) => {
           form.setError(path as any, {
             type: "manual",
             message: messages.join(", "),
           });
         });
+        toast.error("Error de validación", {
+          description: "Por favor revise los campos marcados en rojo.",
+          duration: 5000,
+          style: {
+            background: "#EF4444",
+            color: "white",
+            fontWeight: "500",
+          },
+        });
       } else {
         const message =
           error instanceof Error ? error.message : "Error desconocido";
         setServerErrors({
           _form: [message],
+        });
+        toast.error("Error al procesar la factura", {
+          description: message,
+          duration: 5000,
+          style: {
+            background: "#EF4444",
+            color: "white",
+            fontWeight: "500",
+          },
         });
       }
     } finally {
@@ -209,20 +239,6 @@ export default function InvoiceForm() {
 
                 <FormField
                   control={form.control}
-                  name="billing_period.start_time"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Hora Inicio</FormLabel>
-                      <FormControl>
-                        <Input type="time" step="1" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="billing_period.end_date"
                   render={({ field }) => (
                     <FormItem>
@@ -239,6 +255,20 @@ export default function InvoiceForm() {
                               ?.message
                           }
                         />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="billing_period.end_time"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Hora Fin</FormLabel>
+                      <FormControl>
+                        <Input type="time" step="1" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

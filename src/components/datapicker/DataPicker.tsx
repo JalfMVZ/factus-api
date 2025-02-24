@@ -21,6 +21,8 @@ interface DatePickerProps {
   errorMessage?: string;
   required?: boolean;
   disabled?: boolean;
+  minDate?: Date;
+  maxDate?: Date;
 }
 
 export function DatePicker({
@@ -32,6 +34,8 @@ export function DatePicker({
   errorMessage,
   required = false,
   disabled = false,
+  minDate = new Date("1900-01-01"),
+  maxDate,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
 
@@ -61,7 +65,6 @@ export function DatePicker({
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
-
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -82,11 +85,10 @@ export function DatePicker({
             )}
           </Button>
         </PopoverTrigger>
-
         <PopoverContent
           className="w-auto p-0"
           align="start"
-          onInteractOutside={(e) => e.preventDefault()} // Evitar cierre al seleccionar fecha
+          onInteractOutside={(e) => e.preventDefault()}
         >
           <Calendar
             mode="single"
@@ -94,9 +96,7 @@ export function DatePicker({
             onSelect={handleSelect}
             initialFocus
             locale={es}
-            disabled={(date) =>
-              date > new Date() || date < new Date("1900-01-01")
-            }
+            disabled={(date) => date < minDate}
             classNames={{
               day_selected: "bg-invoice-500 hover:bg-invoice-600",
               day_today: "border border-invoice-500",
@@ -104,7 +104,6 @@ export function DatePicker({
           />
         </PopoverContent>
       </Popover>
-
       {errorMessage && (
         <FormMessage className="text-red-500 text-sm">
           {errorMessage}
