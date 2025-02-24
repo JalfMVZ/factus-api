@@ -15,36 +15,44 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@radix-ui/react-select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useForm, useFieldArray } from "react-hook-form";
-import { InvoiceFormValues, formSchema } from "../schema/invoice.schema";
 import { CustomerForm } from "./CustomerForm";
 import { InvoiceBasicForm } from "./InvoiceBasicForm";
 import { InvoiceItemForm } from "./InvoiceItemForm";
 import { DatePicker } from "@/components/datapicker/DataPicker";
-import { validateBill } from "@/services/invoices";
+import { processInvoice } from "@/services/invoices";
+import { BillValidationError } from "@/errors/billCreationError";
+import { Invoice, InvoiceSchema } from "../schema/invoice.schema";
+import { useAuth } from "@/hooks/useAuth";
+import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { formatZodErrors } from "@/lib/formatZodErrors";
 
 export default function InvoiceForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverErrors, setServerErrors] = useState<Record<string, string[]>>(
+    {}
+  );
+  const { token } = useAuth();
 
-  const form = useForm<InvoiceFormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<Invoice>({
+    resolver: zodResolver(InvoiceSchema),
     defaultValues: {
+      document: "01",
       numbering_range_id: 1,
       reference_code: "",
       observation: "",
-      payment_form: "",
-      payment_method_code: "",
-      payment_due_date: new Date(),
+      payment_form: "1",
+      payment_method_code: "10",
+      payment_due_date: new Date().toISOString().split("T")[0],
       billing_period: {
-        start_date: new Date(),
-        start_time: "00:00",
-        end_date: new Date(),
-        end_time: "23:59",
+        start_date: new Date().toISOString().split("T")[0],
+        start_time: "00:00:00",
+        end_date: new Date().toISOString().split("T")[0],
+        end_time: "23:59:59",
       },
       customer: {
         identification: "",
@@ -62,7 +70,6 @@ export default function InvoiceForm() {
       },
       items: [
         {
-          tribute_id: 1,
           code_reference: "",
           name: "",
           quantity: 1,
@@ -72,6 +79,7 @@ export default function InvoiceForm() {
           unit_measure_id: 70,
           standard_code_id: 1,
           is_excluded: 0,
+          tribute_id: 1,
           withholding_taxes: [],
         },
       ],
@@ -79,28 +87,44 @@ export default function InvoiceForm() {
   });
 
   const { fields, append, remove } = useFieldArray({
-    name: "items",
     control: form.control,
+    name: "items",
   });
 
-  async function onSubmit(values: InvoiceFormValues) {
+  const handleFormError = (errors: typeof form.formState.errors) => {
+    const parsedErrors = formatZodErrors(errors);
+    setServerErrors(parsedErrors);
+  };
+
+  async function onSubmit(values: Invoice) {
     try {
       setIsSubmitting(true);
-      console.log("Form values:", values);
-
-      const token = localStorage.getItem("token");
+      setServerErrors({});
 
       if (!token) {
-        throw new Error("No authentication token found");
+        throw new Error("No se encontró el token de autenticación");
       }
 
-      const validationResult = await validateBill(values, token);
-      console.log("Validation successful:", validationResult);
-    } catch (error: any) {
-      if (error.name === "BillValidationError") {
-        console.error("Validation errors:", error.errors);
+      const result = await processInvoice(values, token);
+
+      form.reset();
+    } catch (error) {
+      if (error instanceof BillValidationError) {
+        const errorMap = error.errors;
+        setServerErrors(errorMap);
+
+        Object.entries(errorMap).forEach(([path, messages]) => {
+          form.setError(path as any, {
+            type: "manual",
+            message: messages.join(", "),
+          });
+        });
       } else {
-        console.error("Error submitting form:", error.message);
+        const message =
+          error instanceof Error ? error.message : "Error desconocido";
+        setServerErrors({
+          _form: [message],
+        });
       }
     } finally {
       setIsSubmitting(false);
@@ -110,34 +134,39 @@ export default function InvoiceForm() {
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit(onSubmit, handleFormError)}
         className="max-w-6xl mx-auto p-6 space-y-8"
       >
         <Card className="bg-white shadow-lg">
           <CardHeader className="bg-invoice-50 border-b border-invoice-100">
             <CardTitle className="text-2xl font-bold text-invoice-900">
-              Generate Invoice
+              Generar Factura Electrónica
             </CardTitle>
             <CardDescription className="text-invoice-700">
-              Create a new invoice with customer and item details.
+              Complete todos los campos requeridos para emitir la factura
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-8 p-6">
-            {/* Basic Information Section */}
+            {/* Sección Información Básica */}
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-invoice-800">
-                Basic Information
+                Información General
               </h3>
               <InvoiceBasicForm control={form.control} />
+              {serverErrors.general && (
+                <div className="text-red-500 text-sm">
+                  {serverErrors.general.join(", ")}
+                </div>
+              )}
             </div>
 
             <Separator className="bg-invoice-100" />
 
-            {/* Billing Period Section */}
+            {/* Período de Facturación */}
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-invoice-800">
-                Billing Period
+                Período Facturación
               </h3>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <FormField
@@ -145,13 +174,18 @@ export default function InvoiceForm() {
                   name="billing_period.start_date"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-invoice-700">
-                        Start Date
-                      </FormLabel>
+                      <FormLabel>Fecha Inicio</FormLabel>
                       <FormControl>
                         <DatePicker
                           value={field.value}
                           onChange={field.onChange}
+                          error={
+                            !!form.formState.errors.billing_period?.start_date
+                          }
+                          errorMessage={
+                            form.formState.errors.billing_period?.start_date
+                              ?.message
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -164,15 +198,23 @@ export default function InvoiceForm() {
                   name="billing_period.start_time"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-invoice-700">
-                        Start Time
-                      </FormLabel>
+                      <FormLabel>Hora Inicio</FormLabel>
                       <FormControl>
-                        <Input
-                          type="time"
-                          className="border-invoice-200 focus:border-invoice-500"
-                          {...field}
-                        />
+                        <Input type="time" step="1" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="billing_period.start_time"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Hora Inicio</FormLabel>
+                      <FormControl>
+                        <Input type="time" step="1" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -184,33 +226,18 @@ export default function InvoiceForm() {
                   name="billing_period.end_date"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-invoice-700">
-                        End Date
-                      </FormLabel>
+                      <FormLabel>Fecha Fin</FormLabel>
                       <FormControl>
                         <DatePicker
                           value={field.value}
                           onChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="billing_period.end_time"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-invoice-700">
-                        End Time
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="time"
-                          className="border-invoice-200 focus:border-invoice-500"
-                          {...field}
+                          error={
+                            !!form.formState.errors.billing_period?.end_date
+                          }
+                          errorMessage={
+                            form.formState.errors.billing_period?.end_date
+                              ?.message
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -222,27 +249,26 @@ export default function InvoiceForm() {
 
             <Separator className="bg-invoice-100" />
 
-            {/* Customer Information Section */}
+            {/* Datos del Cliente */}
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-invoice-800">
-                Customer Information
+                Información del Cliente
               </h3>
               <CustomerForm control={form.control} />
             </div>
 
             <Separator className="bg-invoice-100" />
 
-            {/* Invoice Items Section */}
+            {/* Items de la Factura */}
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-invoice-800">
-                  Invoice Items
+                  Detalle de Productos/Servicios
                 </h3>
                 <Button
                   type="button"
                   onClick={() =>
                     append({
-                      tribute_id: 1,
                       code_reference: "",
                       name: "",
                       quantity: 1,
@@ -252,13 +278,14 @@ export default function InvoiceForm() {
                       unit_measure_id: 70,
                       standard_code_id: 1,
                       is_excluded: 0,
+                      tribute_id: 1,
                       withholding_taxes: [],
                     })
                   }
                   className="bg-invoice-500 hover:bg-invoice-600 text-white"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Item
+                  Agregar Item
                 </Button>
               </div>
 
@@ -281,7 +308,29 @@ export default function InvoiceForm() {
             className="bg-invoice-500 hover:bg-invoice-600 text-white px-8 py-2 text-lg"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Validating..." : "Generate Invoice"}
+            {isSubmitting ? (
+              <span className="flex items-center">
+                <svg className="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                Procesando...
+              </span>
+            ) : (
+              "Generar Factura"
+            )}
           </Button>
         </div>
       </form>

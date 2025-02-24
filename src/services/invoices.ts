@@ -1,70 +1,85 @@
 import {
-  formSchema,
-  InvoiceFormValues,
+  Invoice,
+  InvoiceSchema,
 } from "@/components/invoice/schema/invoice.schema";
+import { ApiResponse, ApiError } from "@/services/interfaces/apiResponse";
+import { BillValidationError } from "@/errors/billCreationError";
 import { z } from "zod";
 
-export class BillValidationError extends Error {
-  constructor(public errors: any) {
-    super("Error de validación de factura");
-    this.name = "BillValidationError";
-  }
-}
+const transformApiErrors = (errors: ApiError[]): Record<string, string[]> => {
+  return errors.reduce((acc, error) => {
+    const path =
+      error.source?.pointer?.replace("/data/", "").replaceAll("/", ".") ||
+      "general";
 
-export const validateBill = async (
-  data: InvoiceFormValues,
+    acc[path] = [error.detail];
+    return acc;
+  }, {} as Record<string, string[]>);
+};
+
+export const processInvoice = async (
+  formData: Invoice,
   token: string
-): Promise<any> => {
+): Promise<ApiResponse<Invoice>> => {
   try {
-    // Primero validamos con Zod
-    const validatedData = formSchema.parse(data);
+    const validatedData = InvoiceSchema.parse(formData);
 
-    // Preparamos las fechas para la API
-    const formattedData = {
+    const payload = {
       ...validatedData,
-      payment_due_date: validatedData.payment_due_date
-        .toISOString()
-        .split("T")[0],
-      billing_period: {
-        ...validatedData.billing_period,
-        start_date: validatedData.billing_period.start_date
-          .toISOString()
-          .split("T")[0],
-        end_date: validatedData.billing_period.end_date
-          .toISOString()
-          .split("T")[0],
-      },
+      items: validatedData.items.map((item) => ({
+        ...item,
+        tax_rate: parseFloat(item.tax_rate),
+        withholding_taxes: item.withholding_taxes?.map((tax) => ({
+          ...tax,
+          withholding_tax_rate: parseFloat(tax.withholding_tax_rate),
+        })),
+      })),
     };
 
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_URL_API}/v1/bills/validate`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formattedData),
-      }
-    );
+    const API_ENDPOINT = `${process.env.NEXT_PUBLIC_URL_API}/v1/bills/validate`;
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new BillValidationError(errorData);
+    const response = await fetch(API_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    let responseData: ApiResponse<Invoice>;
+    try {
+      responseData = await response.json();
+    } catch (e) {
+      const textResponse = await response.text();
+      throw new Error("Respuesta no válida del servidor");
     }
 
-    return await response.json();
+    if (!response.ok) {
+      throw new BillValidationError(
+        responseData.errors
+          ? transformApiErrors(responseData.errors)
+          : { general: [responseData.message || "Error desconocido"] }
+      );
+    }
+
+    return responseData;
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw new BillValidationError(error.errors);
+      const formattedErrors = error.errors.reduce((acc, curr) => {
+        acc[curr.path.join(".")] = [curr.message];
+        return acc;
+      }, {} as Record<string, string[]>);
+
+      throw new BillValidationError(formattedErrors);
     }
 
     if (error instanceof BillValidationError) {
       throw error;
     }
 
-    console.error("Error validating bill:", error);
-    throw new Error("Error al validar la factura");
+    throw new BillValidationError({
+      general: ["Ocurrió un error inesperado. Por favor intente nuevamente."],
+    });
   }
 };

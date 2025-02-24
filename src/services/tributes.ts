@@ -1,7 +1,7 @@
-export const numberingRanges = async (token: string) => {
+export const getAllTributes = async (token: string) => {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_URL_API}/v1/numbering-ranges`,
+      `${process.env.NEXT_PUBLIC_URL_API}/v1/tributes/products`,
       {
         method: "GET",
         headers: {
@@ -15,7 +15,7 @@ export const numberingRanges = async (token: string) => {
     if (!response.ok) {
       const errorData = await response.json();
       console.error("Error response:", errorData);
-      throw new Error(errorData.error_description || "Error al obtener rangos");
+      throw new Error(errorData.error_description || "Error al obtener los tributos");
     }
 
     const data = await response.json();

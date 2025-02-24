@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -11,6 +12,7 @@ export function useAuth() {
       const storedToken = localStorage.getItem("access_token");
       setIsAuthenticated(!!storedToken);
       setToken(storedToken);
+      setLoading(false);
     }
   }, []);
 
@@ -25,5 +27,5 @@ export function useAuth() {
     }
   };
 
-  return { isAuthenticated, token, logout };
+  return { isAuthenticated, token, loading, logout };
 }
