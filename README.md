@@ -89,8 +89,6 @@ git push origin nueva-funcionalidad
 
 ## Contacto
 
-Tu Nombre
-
 - Correo: velascojosealfredo1@gmail.com
 - Sitio Web: [Portfolio](https://portfolio-jmvz.vercel.app/)
 - GitHub: [JalfMVZ](https://github.com/JalfMVZ)
